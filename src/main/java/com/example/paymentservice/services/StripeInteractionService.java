@@ -64,6 +64,8 @@ public class StripeInteractionService implements PaymentGatewayInterface{
         return paymentLink;
     }
 
+
+
     // Method to create a product in Stripe
     public Product createStripeProduct(String productName, String productDescription) throws StripeException {
         //Interact with StripeMapping table to get the

@@ -10,6 +10,7 @@ import com.stripe.model.Product;
 import com.stripe.param.PaymentLinkCreateParams;
 import com.stripe.param.PriceCreateParams;
 import com.stripe.param.ProductCreateParams;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -38,8 +39,6 @@ public class StripeInteractionService implements PaymentGatewayInterface{
         String stripePriceId = stripeMapping.get().getStripePriceId();
 
         //Interact with the Stripe API to create a payment link
-        Stripe.apiKey = "sk_test_51RKI9qCQL48waRtEbb1YSa16Wvjdeu3RP2QeL1qM5dNUGR8E6Tqga2xN4veYLA81TFPcpt4EYSmZsrpbnanyU3ij00gVnOtRxB";
-
         PaymentLinkCreateParams params =
                 PaymentLinkCreateParams.builder()
                         .setCurrency(currency)

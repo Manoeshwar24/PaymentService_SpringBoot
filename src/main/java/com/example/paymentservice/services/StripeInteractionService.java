@@ -1,8 +1,9 @@
 package com.example.paymentservice.services;
 
+import com.example.paymentservice.models.PaymentStatus;
 import com.example.paymentservice.models.StripeMapping;
+import com.example.paymentservice.repositories.PaymentRepository;
 import com.example.paymentservice.repositories.StripeMappingRepository;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentLink;
 import com.stripe.model.Price;
@@ -10,8 +11,6 @@ import com.stripe.model.Product;
 import com.stripe.param.PaymentLinkCreateParams;
 import com.stripe.param.PriceCreateParams;
 import com.stripe.param.ProductCreateParams;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
@@ -19,9 +18,11 @@ import java.util.Optional;
 public class StripeInteractionService implements PaymentGatewayInterface{
 
     private final StripeMappingRepository stripeMappingRepository;
+    private final PaymentRepository paymentRepository;
 
-    public StripeInteractionService(StripeMappingRepository stripeMappingRepository) {
+    public StripeInteractionService(StripeMappingRepository stripeMappingRepository, PaymentRepository paymentRepository) {
         this.stripeMappingRepository = stripeMappingRepository;
+        this.paymentRepository = paymentRepository;
     }
     // This service will handle all interactions with Stripe API
 
@@ -30,7 +31,6 @@ public class StripeInteractionService implements PaymentGatewayInterface{
 
         //Call orderService's and productService's API to fetch order details
         // For now, we will use a hardcoded product ID and quantity
-        //Long productId = 1L;
         Long quantity = 2L;
         String currency = "INR";
 
@@ -88,5 +88,12 @@ public class StripeInteractionService implements PaymentGatewayInterface{
 
         Price price = Price.create(params);
         return price;
+    }
+
+    //Method to receive data from the webhook enabled in Stripe
+    public void updatePaymentStatus(Long paymentId, PaymentStatus paymentStatus) throws StripeException {
+
+        //update the database with the payment status that we received from Stripe
+
     }
 }

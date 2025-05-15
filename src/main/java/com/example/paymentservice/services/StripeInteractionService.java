@@ -11,11 +11,19 @@ import com.stripe.model.Product;
 import com.stripe.param.PaymentLinkCreateParams;
 import com.stripe.param.PriceCreateParams;
 import com.stripe.param.ProductCreateParams;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.checkout.Session;
+import com.stripe.net.Webhook;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 
-public class StripeInteractionService implements PaymentGatewayInterface{
+@Service
+public class StripeInteractionService {
+    
+    private static final String STRIPE_ENDPOINT_SECRET = "your_endpoint_secret";
 
     private final StripeMappingRepository stripeMappingRepository;
     private final PaymentRepository paymentRepository;
@@ -64,13 +72,9 @@ public class StripeInteractionService implements PaymentGatewayInterface{
         return paymentLink;
     }
 
-
-
     // Method to create a product in Stripe
     public Product createStripeProduct(String productName, String productDescription) throws StripeException {
-        //Interact with StripeMapping table to get the
-
-        // Interact with the Stripe API to create a product
+       // Interact with the Stripe API to create a product
         ProductCreateParams params =
                 ProductCreateParams.builder().setName(productName).build();
         Product product = Product.create(params);
@@ -94,6 +98,41 @@ public class StripeInteractionService implements PaymentGatewayInterface{
     public void updatePaymentStatus(Long paymentId, PaymentStatus paymentStatus) throws StripeException {
 
         //update the database with the payment status that we received from Stripe
+        paymentRepository.updatePaymentStatus(paymentId, paymentStatus);
+    }
 
+    public Event verifyAndConstructEvent(String payload, String signature) throws StripeException {
+        return Webhook.constructEvent(payload, signature, STRIPE_ENDPOINT_SECRET);
+    }
+
+    public void handleStripeEvent(Event event) throws StripeException {
+        switch (event.getType()) {
+            case "checkout.session.completed":
+                Session session = (Session) event.getDataObjectDeserializer().getObject().get();
+                String paymentIntentId = session.getPaymentIntent();
+                if (paymentIntentId != null) {
+                    PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+                    handlePaymentIntent(paymentIntent);
+                }
+                break;
+
+            case "payment_intent.succeeded":
+            case "payment_intent.payment_failed":
+            case "payment_intent.canceled":
+            case "payment_intent.created":
+            case "payment_intent.processing":
+                PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer().getObject().get();
+                handlePaymentIntent(paymentIntent);
+                break;
+        }
+    }
+
+    private void handlePaymentIntent(PaymentIntent paymentIntent) throws StripeException {
+        String paymentId = paymentIntent.getMetadata().get("payment_id");
+        PaymentStatus paymentStatus = PaymentStatus.valueOf(paymentIntent.getStatus().toUpperCase());
+        
+        if (paymentId != null) {
+            updatePaymentStatus(Long.valueOf(paymentId), paymentStatus);
+        }
     }
 }
